@@ -26,8 +26,6 @@ class HangmanSolverApp:
 
         # Set up UI components with colors
         self.root.configure(bg=self.bg_color)
-
-        # Set up styles for ttk widgets
         self.style = ttk.Style()
         self.style.configure('TLabel', background=self.bg_color, foreground=self.fg_color)
         self.style.configure('TFrame', background=self.bg_color)
@@ -63,6 +61,7 @@ class HangmanSolverApp:
         self.word_list_menu.grid(row=0, column=3, padx=5, pady=5)
         self.word_list_menu.bind("<<ComboboxSelected>>", self.load_selected_word_list)
 
+        # Generate Fields button
         self.generate_button = tk.Button(root, text="Generate Fields", command=self.generate_fields,
                                         bg=self.widget_color, fg=self.fg_color, borderwidth=0,
                                         activebackground="#24283b", relief="flat")
@@ -87,23 +86,23 @@ class HangmanSolverApp:
         self.common_frame = ttk.Frame(root)
         self.common_frame.grid(row=3, column=5, padx=5, pady=5, sticky='n')
 
-        # Scrollable canvas for displaying words
-        self.words_canvas = tk.Canvas(root, background=self.bg_color, bd=0, highlightthickness=0)
-        self.words_canvas.grid(row=3, column=0, columnspan=4, padx=5, pady=5, sticky='nsew')
+        # Frame for displaying words (replaced canvas with frame to avoid scrolling)
+        self.words_frame = ttk.Frame(root)
+        self.words_frame.grid(row=3, column=0, columnspan=4, padx=5, pady=5, sticky='nsew')
 
-        self.words_scrollbar = ttk.Scrollbar(root, orient="vertical", command=self.words_canvas.yview)
-        self.words_scrollbar.grid(row=3, column=4, sticky='ns', padx=5, pady=5)
+        # Pagination controls
+        self.pagination_frame = ttk.Frame(root)
+        self.pagination_frame.grid(row=4, column=0, columnspan=5, padx=5, pady=5)
 
-        self.words_frame = ttk.Frame(self.words_canvas, style='TFrame')
-        self.words_frame.bind(
-            "<Configure>",
-            lambda e: self.words_canvas.configure(
-                scrollregion=self.words_canvas.bbox("all")
-            )
-        )
+        self.prev_button = tk.Button(self.pagination_frame, text="Previous", command=self.prev_page, state=tk.DISABLED,
+                                     bg=self.widget_color, fg=self.fg_color, borderwidth=0,
+                                     activebackground="#24283b", relief="flat")
+        self.prev_button.grid(row=0, column=0, padx=5)
 
-        self.words_canvas.create_window((0, 0), window=self.words_frame, anchor="nw")
-        self.words_canvas.configure(yscrollcommand=self.words_scrollbar.set)
+        self.next_button = tk.Button(self.pagination_frame, text="Next", command=self.next_page,
+                                     bg=self.widget_color, fg=self.fg_color, borderwidth=0,
+                                     activebackground="#24283b", relief="flat")
+        self.next_button.grid(row=0, column=1, padx=5)
 
         # Configure column and row weights
         root.grid_rowconfigure(1, weight=1)
@@ -113,8 +112,9 @@ class HangmanSolverApp:
         root.grid_columnconfigure(6, weight=1)
         root.grid_columnconfigure(4, weight=0)
 
-        # Enable mouse wheel scrolling
-        self.words_canvas.bind_all("<MouseWheel>", self._on_mouse_wheel)
+        # Pagination settings
+        self.words_per_page = 10
+        self.current_page = 0
 
         # Load default word list if available
         self.load_default_word_list()
@@ -132,15 +132,6 @@ class HangmanSolverApp:
         if new_value == "" or new_value.isdigit():
             return True
         return False
-
-    def _on_mouse_wheel(self, event):
-        """
-        Handle mouse wheel scrolling for the words canvas.
-        
-        Args:
-            event (tk.Event): The mouse wheel event containing scroll delta.
-        """
-        self.words_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 
     def get_word_lists(self):
         """
@@ -217,10 +208,10 @@ class HangmanSolverApp:
 
     def get_pattern(self):
         """
-        Construct the current word pattern from the entry fields.
-        
+        Construct the current pattern based on the entries in the fields_frame.
+
         Returns:
-            str: The pattern string, where each entry is represented by its current value or '.' for empty entries.
+            str: The pattern string with letters and '.' for empty fields.
         """
         pattern = []
         for entry in self.word_entries:
@@ -260,6 +251,12 @@ class HangmanSolverApp:
                     filtered_words.append(word)
         return filtered_words
 
+    def display_words(self):
+        """
+        Display the words in the words_frame with pagination.
+        """
+        self.update_words()
+
     def update_words(self, event=None):
         """
         Update the displayed list of words based on the current pattern and excluded letters.
@@ -275,44 +272,57 @@ class HangmanSolverApp:
         for widget in self.words_frame.winfo_children():
             widget.destroy()
 
-        # Display filtered words
-        for i, word in enumerate(filtered_words):
-            word_label = tk.Label(self.words_frame, text=word, bg=self.bg_color, fg=self.fg_color)
-            word_label.grid(row=i, column=0, padx=5, pady=2)
-            word_label.configure(anchor="center")
+        # Display words for the current page
+        self.show_words(filtered_words)
 
-        # Update most common letters display
-        self.update_common_letters(filtered_words)
-
-    def update_common_letters(self, words):
+    def show_words(self, words):
         """
-        Update the display of the most common letters from the filtered list of words.
+        Show the filtered words with pagination.
         
         Args:
-            words (list): A list of filtered words used to determine the most common letters.
+            words (list): A list of filtered words to display.
         """
-        letter_counter = Counter()
-        for word in words:
-            unique_letters = set(word)
-            letter_counter.update(unique_letters)
+        # Calculate pagination
+        start_index = self.current_page * self.words_per_page
+        end_index = start_index + self.words_per_page
+        page_words = words[start_index:end_index]
 
-        excluded_letters = self.get_excluded_letters()
-        for letter in excluded_letters:
-            del letter_counter[letter]
+        # Display words for the current page
+        y_position = 10  # Initial vertical position
+        for word in page_words:
+            word_label = tk.Label(self.words_frame, text=word, bg=self.bg_color, fg=self.fg_color)
+            word_label.grid(row=y_position // 25, column=0, padx=5, pady=5, sticky='w')
+            y_position += 25  # Adjust vertical spacing between words
 
-        common_letters = letter_counter.most_common(10)
+        # Update pagination buttons
+        self.update_pagination_buttons(words)
 
-        # Clear previous common letters display
-        for widget in self.common_frame.winfo_children():
-            widget.destroy()
+    def update_pagination_buttons(self, words):
+        """
+        Update the state of the pagination buttons based on the current page.
+        
+        Args:
+            words (list): The full list of words to determine the pagination state.
+        """
+        total_pages = (len(words) + self.words_per_page - 1) // self.words_per_page
+        self.prev_button.config(state=tk.NORMAL if self.current_page > 0 else tk.DISABLED)
+        self.next_button.config(state=tk.NORMAL if self.current_page < total_pages - 1 else tk.DISABLED)
 
-        # Display most common letters
-        for i, (letter, count) in enumerate(common_letters):
-            common_label = tk.Label(self.common_frame, text=f"{letter}: {count}", bg=self.bg_color, fg=self.fg_color)
-            common_label.grid(row=i, column=0, padx=5, pady=2)
+    def prev_page(self):
+        """
+        Go to the previous page of words.
+        """
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.display_words()
 
-    def display_words(self):
-        self.update_words()
+    def next_page(self):
+        """
+        Go to the next page of words.
+        """
+        if self.current_page < (len(self.words) + self.words_per_page - 1) // self.words_per_page - 1:
+            self.current_page += 1
+            self.display_words()
 
 if __name__ == "__main__":
     root = tk.Tk()
