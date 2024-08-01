@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from collections import Counter
+import codecs
 
 class HangmanSolverApp:
     def __init__(self, root):
@@ -84,7 +85,7 @@ class HangmanSolverApp:
         Returns:
             list: A list of words read from the file.
         """
-        with open(filename, 'r') as file:
+        with codecs.open(filename, 'r', encoding='utf-8') as file:
             words = file.read().splitlines()
         return words
 
