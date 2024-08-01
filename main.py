@@ -42,11 +42,15 @@ class HangmanSolverApp:
         # Initialize word_entries as an empty list for entry widgets
         self.word_entries = []
 
+        # Validation function
+        self.validate_cmd = root.register(self.validate_number)
+
         # Number of fields entry
         self.num_label = ttk.Label(root, text="Enter number of fields:")
         self.num_label.grid(row=0, column=0, padx=5, pady=5)
 
-        self.num_entry = tk.Entry(root, bg=self.widget_color, fg=self.fg_color, insertbackground='white', borderwidth=0)
+        self.num_entry = tk.Entry(root, bg=self.widget_color, fg=self.fg_color, insertbackground='white',
+                                 borderwidth=0, validate="key", validatecommand=(self.validate_cmd, '%P'))
         self.num_entry.grid(row=0, column=1, padx=5, pady=5)
 
         # Word list dropdown menu
@@ -59,8 +63,8 @@ class HangmanSolverApp:
         self.word_list_menu.grid(row=0, column=3, padx=5, pady=5)
         self.word_list_menu.bind("<<ComboboxSelected>>", self.load_selected_word_list)
 
-        self.generate_button = tk.Button(root, text="Generate Fields", command=self.generate_fields, 
-                                        bg=self.widget_color, fg=self.fg_color, borderwidth=0, 
+        self.generate_button = tk.Button(root, text="Generate Fields", command=self.generate_fields,
+                                        bg=self.widget_color, fg=self.fg_color, borderwidth=0,
                                         activebackground="#24283b", relief="flat")
         self.generate_button.grid(row=0, column=4, padx=5, pady=5)
 
@@ -114,6 +118,20 @@ class HangmanSolverApp:
 
         # Load default word list if available
         self.load_default_word_list()
+
+    def validate_number(self, new_value):
+        """
+        Validate if the new value is a number.
+
+        Args:
+            new_value (str): The new value to validate.
+
+        Returns:
+            bool: True if the new value is a number, otherwise False.
+        """
+        if new_value == "" or new_value.isdigit():
+            return True
+        return False
 
     def _on_mouse_wheel(self, event):
         """
