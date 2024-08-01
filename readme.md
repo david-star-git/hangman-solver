@@ -16,7 +16,6 @@ The Hangman Solver App is a Tkinter-based GUI application designed to help users
 
 - Python 3.x
 - Tkinter (included with Python)
-- A text file containing the list of words (`words.txt`)
 
 ## Installation
 
@@ -26,8 +25,9 @@ The Hangman Solver App is a Tkinter-based GUI application designed to help users
     cd hangman-solver
     ```
 
-2. **Create `words.txt` File**:
-   - Ensure you have a `words.txt` file in the same directory as the script. This file should contain one word per line.
+2. **Download Word Lists**:
+   - You can download word lists from the [GitHub repository's `wordLists` folder](https://github.com/david-star-git/hangman-solver/tree/main/wordLists).
+   - Place your word list files in the `wordLists` directory. Each word list file should be a plain text file (`.txt`) with one word per line.
 
 3. **Run the Application**:
     ```bash
@@ -39,19 +39,22 @@ The Hangman Solver App is a Tkinter-based GUI application designed to help users
 1. **Enter the Number of Fields**:
    - Input the number of letters in the Hangman word in the "Enter number of fields" entry box.
 
-2. **Generate Fields**:
+2. **Select Word List**:
+   - Use the dropdown menu to select the word list file you want to use (you can change this later). The app will load words from the selected file.
+
+3. **Generate Fields**:
    - Click the "Generate Fields" button to create entry fields corresponding to the number of letters in the word.
 
-3. **Input Known Letters**:
+4. **Input Known Letters**:
    - Enter known letters in the generated fields. Use `.` (dot) for unknown letters.
 
-4. **Exclude Letters**:
+5. **Exclude Letters**:
    - Enter letters to exclude from the list of possible words in the "Exclude letters" entry box.
 
-5. **View Possible Words**:
+6. **View Possible Words**:
    - The app will display a list of words that match the given pattern and exclude the specified letters.
 
-6. **Most Common Letters**:
+7. **Most Common Letters**:
    - View the most common letters in the filtered list of possible words.
 
 ## Code Structure

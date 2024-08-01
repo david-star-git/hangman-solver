@@ -2,20 +2,28 @@ import tkinter as tk
 from tkinter import ttk
 from collections import Counter
 import codecs
+import os
 
 class HangmanSolverApp:
     def __init__(self, root):
         """
         Initialize the HangmanSolverApp with the given root Tkinter window.
         Set up the UI components and layout.
-        
+
         Args:
             root (tk.Tk): The root Tkinter window.
         """
         self.root = root
         self.root.title("Hangman Solver App")
 
-        self.words = self.load_words('words.txt')
+        # Disable window resizing
+        self.root.resizable(False, False)
+
+        self.word_list_dir = 'wordLists'  # Directory containing word list files
+        self.words = []  # List to hold words from the selected word list
+
+        # Initialize word_entries as an empty list for entry widgets
+        self.word_entries = []
 
         # Number of fields entry
         self.num_label = ttk.Label(root, text="Enter number of fields:")
@@ -24,17 +32,44 @@ class HangmanSolverApp:
         self.num_entry = ttk.Entry(root)
         self.num_entry.grid(row=0, column=1, padx=5, pady=5)
 
+        # Word list dropdown menu
+        self.word_list_label = ttk.Label(root, text="Select word list:")
+        self.word_list_label.grid(row=0, column=2, padx=5, pady=5)
+
+        self.word_list_var = tk.StringVar()
+        self.word_list_menu = ttk.Combobox(root, textvariable=self.word_list_var)
+        self.word_list_menu['values'] = self.get_word_lists()
+        self.word_list_menu.grid(row=0, column=3, padx=5, pady=5)
+        self.word_list_menu.bind("<<ComboboxSelected>>", self.load_selected_word_list)
+
         self.generate_button = ttk.Button(root, text="Generate Fields", command=self.generate_fields)
-        self.generate_button.grid(row=0, column=2, padx=5, pady=5)
+        self.generate_button.grid(row=0, column=4, padx=5, pady=5)
 
+        # Frame for entry fields
         self.fields_frame = ttk.Frame(root)
-        self.fields_frame.grid(row=1, column=0, columnspan=3, padx=5, pady=5)
+        self.fields_frame.grid(row=1, column=0, columnspan=5, padx=5, pady=5)
 
+        # Exclude letters section
+        self.exclude_label = ttk.Label(root, text="Exclude letters:")
+        self.exclude_label.grid(row=1, column=5, padx=5, pady=5, sticky='w')
+
+        self.exclude_entry = ttk.Entry(root)
+        self.exclude_entry.grid(row=1, column=6, padx=5, pady=5, sticky='w')
+        self.exclude_entry.bind("<KeyRelease>", self.update_words)
+
+        # Most common letters section
+        self.common_label = ttk.Label(root, text="Most common letters:")
+        self.common_label.grid(row=2, column=5, padx=5, pady=(0, 5), sticky='w')
+
+        self.common_frame = ttk.Frame(root)
+        self.common_frame.grid(row=3, column=5, padx=5, pady=5, sticky='n')
+
+        # Scrollable canvas for displaying words
         self.words_canvas = tk.Canvas(root)
-        self.words_canvas.grid(row=2, column=0, columnspan=3, padx=5, pady=5)
+        self.words_canvas.grid(row=3, column=0, columnspan=4, padx=5, pady=5, sticky='nsew')
 
         self.words_scrollbar = ttk.Scrollbar(root, orient="vertical", command=self.words_canvas.yview)
-        self.words_scrollbar.grid(row=2, column=3, sticky='ns')
+        self.words_scrollbar.grid(row=3, column=4, sticky='ns', padx=5, pady=5)
 
         self.words_frame = ttk.Frame(self.words_canvas)
         self.words_frame.bind(
@@ -47,24 +82,19 @@ class HangmanSolverApp:
         self.words_canvas.create_window((0, 0), window=self.words_frame, anchor="nw")
         self.words_canvas.configure(yscrollcommand=self.words_scrollbar.set)
 
-        self.exclude_label = ttk.Label(root, text="Exclude letters:")
-        self.exclude_label.grid(row=0, column=4, padx=5, pady=5)
-
-        self.exclude_entry = ttk.Entry(root)
-        self.exclude_entry.grid(row=0, column=5, padx=5, pady=5)
-        self.exclude_entry.bind("<KeyRelease>", self.update_words)
-
-        self.common_label = ttk.Label(root, text="Most common letters:")
-        self.common_label.grid(row=1, column=4, columnspan=2, padx=5, pady=5)
-
-        self.common_frame = ttk.Frame(root)
-        self.common_frame.grid(row=2, column=4, columnspan=2, padx=5, pady=5)
-
-        self.word_entries = []
-        self.word_labels = []
+        # Configure column and row weights
+        root.grid_rowconfigure(1, weight=1)
+        root.grid_rowconfigure(2, weight=1)
+        root.grid_columnconfigure(0, weight=1)
+        root.grid_columnconfigure(5, weight=1)
+        root.grid_columnconfigure(6, weight=1)
+        root.grid_columnconfigure(4, weight=0)
 
         # Enable mouse wheel scrolling
         self.words_canvas.bind_all("<MouseWheel>", self._on_mouse_wheel)
+
+        # Load default word list if available
+        self.load_default_word_list()
 
     def _on_mouse_wheel(self, event):
         """
@@ -75,13 +105,50 @@ class HangmanSolverApp:
         """
         self.words_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 
+    def get_word_lists(self):
+        """
+        Retrieve a list of word list files from the word list directory.
+        
+        Returns:
+            list: A list of word list filenames with a '.txt' extension.
+        """
+        return sorted([f for f in os.listdir(self.word_list_dir) if f.endswith('.txt')])
+
+    def load_selected_word_list(self, event):
+        """
+        Load words from the selected word list file and display them.
+
+        Args:
+            event (tk.Event): The event triggered by selecting a word list from the dropdown menu.
+        """
+        selected_file = self.word_list_var.get()
+        if not selected_file:
+            # No selection, so default to the first file alphabetically
+            word_lists = self.get_word_lists()
+            if word_lists:
+                selected_file = word_lists[0]
+                self.word_list_var.set(selected_file)
+        file_path = os.path.join(self.word_list_dir, selected_file)
+        self.words = self.load_words(file_path)
+        self.display_words()
+
+    def load_default_word_list(self):
+        """
+        Load the default word list if available when the application starts.
+        """
+        word_lists = self.get_word_lists()
+        if word_lists:
+            default_file = word_lists[0]
+            self.word_list_var.set(default_file)
+            self.load_selected_word_list(None)
+
     def load_words(self, filename):
         """
         Load words from a given file into a list.
-        
+
         Args:
             filename (str): The path to the file containing the words.
-        
+
         Returns:
             list: A list of words read from the file.
         """
@@ -174,14 +241,17 @@ class HangmanSolverApp:
         pattern = self.get_pattern()
         filtered_words = self.filter_words(pattern)
 
+        # Clear previous word display
         for widget in self.words_frame.winfo_children():
             widget.destroy()
 
+        # Display filtered words
         for i, word in enumerate(filtered_words):
             word_label = ttk.Label(self.words_frame, text=word)
             word_label.grid(row=i, column=0, padx=5, pady=2)
             word_label.configure(anchor="center")
 
+        # Update most common letters display
         self.update_common_letters(filtered_words)
 
     def update_common_letters(self, words):
@@ -202,9 +272,11 @@ class HangmanSolverApp:
 
         common_letters = letter_counter.most_common(10)
 
+        # Clear previous common letters display
         for widget in self.common_frame.winfo_children():
             widget.destroy()
 
+        # Display most common letters
         for i, (letter, count) in enumerate(common_letters):
             common_label = ttk.Label(self.common_frame, text=f"{letter}: {count}")
             common_label.grid(row=i, column=0, padx=5, pady=2)
