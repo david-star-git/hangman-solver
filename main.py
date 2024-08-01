@@ -19,6 +19,23 @@ class HangmanSolverApp:
         # Disable window resizing
         self.root.resizable(False, False)
 
+        # Color configuration
+        self.bg_color = "#24283b"  # Background color
+        self.fg_color = "#7dcfff"  # Foreground color
+        self.widget_color = "#1a1b26"  # Widget color
+
+        # Set up UI components with colors
+        self.root.configure(bg=self.bg_color)
+
+        # Set up styles for ttk widgets
+        self.style = ttk.Style()
+        self.style.configure('TLabel', background=self.bg_color, foreground=self.fg_color)
+        self.style.configure('TFrame', background=self.bg_color)
+        self.style.configure('TButton', background=self.widget_color, foreground=self.fg_color)
+        self.style.map('TButton',
+                       background=[('pressed', '#24283b'), ('active', '#1a1b26')],
+                       foreground=[('pressed', 'white'), ('active', self.fg_color)])
+
         self.word_list_dir = 'wordLists'  # Directory containing word list files
         self.words = []  # List to hold words from the selected word list
 
@@ -29,7 +46,7 @@ class HangmanSolverApp:
         self.num_label = ttk.Label(root, text="Enter number of fields:")
         self.num_label.grid(row=0, column=0, padx=5, pady=5)
 
-        self.num_entry = ttk.Entry(root)
+        self.num_entry = tk.Entry(root, bg=self.widget_color, fg=self.fg_color, insertbackground='white', borderwidth=0)
         self.num_entry.grid(row=0, column=1, padx=5, pady=5)
 
         # Word list dropdown menu
@@ -42,7 +59,9 @@ class HangmanSolverApp:
         self.word_list_menu.grid(row=0, column=3, padx=5, pady=5)
         self.word_list_menu.bind("<<ComboboxSelected>>", self.load_selected_word_list)
 
-        self.generate_button = ttk.Button(root, text="Generate Fields", command=self.generate_fields)
+        self.generate_button = tk.Button(root, text="Generate Fields", command=self.generate_fields, 
+                                        bg=self.widget_color, fg=self.fg_color, borderwidth=0, 
+                                        activebackground="#24283b", relief="flat")
         self.generate_button.grid(row=0, column=4, padx=5, pady=5)
 
         # Frame for entry fields
@@ -53,7 +72,7 @@ class HangmanSolverApp:
         self.exclude_label = ttk.Label(root, text="Exclude letters:")
         self.exclude_label.grid(row=1, column=5, padx=5, pady=5, sticky='w')
 
-        self.exclude_entry = ttk.Entry(root)
+        self.exclude_entry = tk.Entry(root, bg=self.widget_color, fg=self.fg_color, insertbackground='white', borderwidth=0)
         self.exclude_entry.grid(row=1, column=6, padx=5, pady=5, sticky='w')
         self.exclude_entry.bind("<KeyRelease>", self.update_words)
 
@@ -65,13 +84,13 @@ class HangmanSolverApp:
         self.common_frame.grid(row=3, column=5, padx=5, pady=5, sticky='n')
 
         # Scrollable canvas for displaying words
-        self.words_canvas = tk.Canvas(root)
+        self.words_canvas = tk.Canvas(root, background=self.bg_color, bd=0, highlightthickness=0)
         self.words_canvas.grid(row=3, column=0, columnspan=4, padx=5, pady=5, sticky='nsew')
 
         self.words_scrollbar = ttk.Scrollbar(root, orient="vertical", command=self.words_canvas.yview)
         self.words_scrollbar.grid(row=3, column=4, sticky='ns', padx=5, pady=5)
 
-        self.words_frame = ttk.Frame(self.words_canvas)
+        self.words_frame = ttk.Frame(self.words_canvas, style='TFrame')
         self.words_frame.bind(
             "<Configure>",
             lambda e: self.words_canvas.configure(
@@ -171,7 +190,7 @@ class HangmanSolverApp:
 
         self.word_entries = []
         for i in range(num_fields):
-            word_entry = ttk.Entry(self.fields_frame, width=5)
+            word_entry = tk.Entry(self.fields_frame, width=5, bg=self.widget_color, fg=self.fg_color, insertbackground='white', borderwidth=0)
             word_entry.grid(row=0, column=i, padx=2, pady=2)
             word_entry.bind("<KeyRelease>", self.update_words)
             self.word_entries.append(word_entry)
@@ -219,13 +238,6 @@ class HangmanSolverApp:
                     if p != '.' and p != w:
                         match = False
                         break
-                if match:
-                    # Check for unique occurrences of each specified letter in the pattern
-                    counts = {char: pattern.count(char) for char in pattern if char != '.'}
-                    for char, count in counts.items():
-                        if word.count(char) != count:
-                            match = False
-                            break
                 if match and not any(letter in word for letter in excluded_letters):
                     filtered_words.append(word)
         return filtered_words
@@ -247,7 +259,7 @@ class HangmanSolverApp:
 
         # Display filtered words
         for i, word in enumerate(filtered_words):
-            word_label = ttk.Label(self.words_frame, text=word)
+            word_label = tk.Label(self.words_frame, text=word, bg=self.bg_color, fg=self.fg_color)
             word_label.grid(row=i, column=0, padx=5, pady=2)
             word_label.configure(anchor="center")
 
@@ -278,7 +290,7 @@ class HangmanSolverApp:
 
         # Display most common letters
         for i, (letter, count) in enumerate(common_letters):
-            common_label = ttk.Label(self.common_frame, text=f"{letter}: {count}")
+            common_label = tk.Label(self.common_frame, text=f"{letter}: {count}", bg=self.bg_color, fg=self.fg_color)
             common_label.grid(row=i, column=0, padx=5, pady=2)
 
     def display_words(self):
