@@ -71,14 +71,6 @@ class HangmanSolverApp:
         self.fields_frame = ttk.Frame(root)
         self.fields_frame.grid(row=1, column=0, columnspan=5, padx=5, pady=5)
 
-        # Exclude letters section
-        self.exclude_label = ttk.Label(root, text="Exclude letters:")
-        self.exclude_label.grid(row=1, column=5, padx=5, pady=5, sticky='w')
-
-        self.exclude_entry = tk.Entry(root, bg=self.widget_color, fg=self.fg_color, insertbackground='white', borderwidth=0)
-        self.exclude_entry.grid(row=1, column=6, padx=5, pady=5, sticky='w')
-        self.exclude_entry.bind("<KeyRelease>", self.update_words)
-
         # Most common letters section
         self.common_label = ttk.Label(root, text="Most common letters:")
         self.common_label.grid(row=2, column=5, padx=5, pady=(0, 5), sticky='w')
@@ -104,13 +96,55 @@ class HangmanSolverApp:
                                      activebackground="#24283b", relief="flat")
         self.next_button.grid(row=0, column=1, padx=5)
 
-        # Configure column and row weights
+        # Top bar layout
+        self.top_frame = ttk.Frame(root)
+        self.top_frame.grid(row=0, column=0, columnspan=7, padx=5, pady=5, sticky='ew')
+
+        # Number of fields entry
+        self.num_label = ttk.Label(self.top_frame, text="Enter number of fields:")
+        self.num_label.grid(row=0, column=0, padx=5, pady=5)
+
+        self.num_entry = tk.Entry(self.top_frame, bg=self.widget_color, fg=self.fg_color, insertbackground='white',
+                                 borderwidth=0, validate="key", validatecommand=(self.validate_cmd, '%P'))
+        self.num_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        # Word list dropdown menu
+        self.word_list_label = ttk.Label(self.top_frame, text="Select word list:")
+        self.word_list_label.grid(row=0, column=2, padx=5, pady=5)
+
+        self.word_list_var = tk.StringVar()
+        self.word_list_menu = ttk.Combobox(self.top_frame, textvariable=self.word_list_var)
+        self.word_list_menu['values'] = self.get_word_lists()
+        self.word_list_menu.grid(row=0, column=3, padx=5, pady=5)
+        self.word_list_menu.bind("<<ComboboxSelected>>", self.load_selected_word_list)
+
+        self.generate_button = tk.Button(self.top_frame, text="Generate Fields", command=self.generate_fields,
+                                        bg=self.widget_color, fg=self.fg_color, borderwidth=0,
+                                        activebackground="#24283b", relief="flat")
+        self.generate_button.grid(row=0, column=4, padx=5, pady=5)
+
+        # Exclude letters section
+        self.exclude_label = ttk.Label(self.top_frame, text="Exclude letters:")
+        self.exclude_label.grid(row=0, column=5, padx=5, pady=5, sticky='w')
+
+        self.exclude_entry = tk.Entry(self.top_frame, bg=self.widget_color, fg=self.fg_color, insertbackground='white', borderwidth=0)
+        self.exclude_entry.grid(row=0, column=6, padx=5, pady=5, sticky='w')
+        self.exclude_entry.bind("<KeyRelease>", self.update_words)
+
+
+        # Configure row and column weights
         root.grid_rowconfigure(1, weight=1)
-        root.grid_rowconfigure(2, weight=1)
+        root.grid_rowconfigure(2, weight=0)
+        root.grid_rowconfigure(3, weight=0)
+        root.grid_rowconfigure(4, weight=1)
         root.grid_columnconfigure(0, weight=1)
-        root.grid_columnconfigure(5, weight=1)
-        root.grid_columnconfigure(6, weight=1)
+        root.grid_columnconfigure(1, weight=0)
+        root.grid_columnconfigure(2, weight=0)
+        root.grid_columnconfigure(3, weight=0)
         root.grid_columnconfigure(4, weight=0)
+        root.grid_columnconfigure(5, weight=0)
+        root.grid_columnconfigure(6, weight=0)
+
 
         # Pagination settings
         self.words_per_page = 10
@@ -206,6 +240,52 @@ class HangmanSolverApp:
 
         self.display_words()
 
+    def update_common_letters(self, words):
+        """
+        Update the display of the most common letters from the filtered list of words,
+        excluding letters that have already been entered in the input fields.
+        
+        Args:
+            words (list): A list of filtered words used to determine the most common letters.
+        """
+        letter_counter = Counter()
+        for word in words:
+            letter_counter.update(word)  # Count all letters, not just unique ones
+
+        # Exclude letters from input fields
+        entered_letters = set(self.get_entered_letters())
+        excluded_letters = self.get_excluded_letters()
+        all_excluded_letters = entered_letters.union(excluded_letters)
+
+        for letter in all_excluded_letters:
+            if letter in letter_counter:
+                del letter_counter[letter]
+
+        common_letters = letter_counter.most_common(10)
+
+        # Clear previous common letters display
+        for widget in self.common_frame.winfo_children():
+            widget.destroy()
+
+        # Display most common letters
+        for i, (letter, count) in enumerate(common_letters):
+            common_label = tk.Label(self.common_frame, text=f"{letter}: {count}", bg=self.bg_color, fg=self.fg_color)
+            common_label.grid(row=i, column=0, padx=5, pady=2)
+
+    def get_entered_letters(self):
+        """
+        Retrieve the letters that have been entered in the input fields.
+        
+        Returns:
+            set: A set of letters that have been entered in the input fields.
+        """
+        entered_letters = set()
+        for entry in self.word_entries:
+            letter = entry.get().strip()
+            if letter:
+                entered_letters.add(letter)
+        return entered_letters
+
     def get_pattern(self):
         """
         Construct the current pattern based on the entries in the fields_frame.
@@ -274,6 +354,9 @@ class HangmanSolverApp:
 
         # Display words for the current page
         self.show_words(filtered_words)
+
+        # Update most common letters display
+        self.update_common_letters(filtered_words)
 
     def show_words(self, words):
         """
