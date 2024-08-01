@@ -418,3 +418,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = HangmanSolverApp(root)
     root.mainloop()
+
