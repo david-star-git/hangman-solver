@@ -119,6 +119,8 @@ class HangmanSolverApp:
         # Load default word list if available
         self.load_default_word_list()
 
+        self.center_window()
+
     def validate_number(self, new_value):
         """
         Validate if the new value is a number.
@@ -313,6 +315,18 @@ class HangmanSolverApp:
 
     def display_words(self):
         self.update_words()
+
+    def center_window(self):
+        window_width = 900  # Set your desired width
+        window_height = 360  # Set your desired height
+
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+
+        self.root.geometry(f'{window_width}x{window_height}+{x}+{y}')
 
 if __name__ == "__main__":
     root = tk.Tk()
