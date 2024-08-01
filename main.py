@@ -327,6 +327,13 @@ class HangmanSolverApp:
                     if p != '.' and p != w:
                         match = False
                         break
+                if match:
+                    # Check for unique occurrences of each specified letter in the pattern
+                    counts = {char: pattern.count(char) for char in pattern if char != '.'}
+                    for char, count in counts.items():
+                        if word.count(char) != count:
+                            match = False
+                            break
                 if match and not any(letter in word for letter in excluded_letters):
                     filtered_words.append(word)
         return filtered_words
