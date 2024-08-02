@@ -77,4 +77,4 @@ Feel free to submit issues, suggestions, or pull requests to improve the app.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE.txt) file for details.
+This project is licensed under a custom license. See the [LICENSE](LICENSE.txt) file for details.
