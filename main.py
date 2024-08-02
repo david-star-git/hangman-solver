@@ -342,7 +342,18 @@ class HangmanSolverApp:
         """
         Display the words in the words_frame with pagination.
         """
-        self.update_words()
+        pattern = self.get_pattern()
+        filtered_words = self.filter_words(pattern)
+
+        # Clear previous word display
+        for widget in self.words_frame.winfo_children():
+            widget.destroy()
+
+        # Display words for the current page
+        self.show_words(filtered_words)
+
+        # Update most common letters display
+        self.update_common_letters(filtered_words)
 
     def update_words(self, event=None):
         """
@@ -368,7 +379,7 @@ class HangmanSolverApp:
     def show_words(self, words):
         """
         Show the filtered words with pagination.
-        
+
         Args:
             words (list): A list of filtered words to display.
         """
@@ -378,14 +389,21 @@ class HangmanSolverApp:
         page_words = words[start_index:end_index]
 
         # Display words for the current page
-        y_position = 10  # Initial vertical position
+        y_position = 0  # Initial vertical position
         for word in page_words:
             word_label = tk.Label(self.words_frame, text=word, bg=self.bg_color, fg=self.fg_color)
-            word_label.grid(row=y_position // 25, column=0, padx=5, pady=5, sticky='w')
-            y_position += 25  # Adjust vertical spacing between words
+            word_label.grid(row=y_position, column=0, padx=5, pady=5, sticky='w')
+            y_position += 1  # Adjust vertical spacing between words
+
+        # Add empty labels if fewer than 10 words are displayed
+        for _ in range(len(page_words), self.words_per_page):
+            empty_label = tk.Label(self.words_frame, text=" ", bg=self.bg_color)
+            empty_label.grid(row=y_position, column=0, padx=5, pady=5, sticky='w')
+            y_position += 1
 
         # Update pagination buttons
         self.update_pagination_buttons(words)
+
 
     def update_pagination_buttons(self, words):
         """
